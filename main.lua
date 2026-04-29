@@ -28,6 +28,7 @@ local MIN_REST_SECONDS = 1
 local MAX_REST_SECONDS = 300
 
 local Screen = Device.screen
+local active_instance = nil
 
 local function readSetting(key, default)
     local value = G_reader_settings:readSetting(key)
@@ -163,6 +164,11 @@ local TwentyTwentyTwenty = WidgetContainer:extend{
 }
 
 function TwentyTwentyTwenty:init()
+    if active_instance and active_instance ~= self then
+        active_instance:shutdown()
+    end
+    active_instance = self
+    self._timer_generation = 0
     self.ui.menu:registerToMainMenu(self)
     self:_migrateDefaults()
     if self:isEnabled() then
@@ -224,8 +230,13 @@ function TwentyTwentyTwenty:startTimer()
         return
     end
 
+    self._timer_generation = (self._timer_generation or 0) + 1
+    local timer_generation = self._timer_generation
     local delay = self:getIntervalMinutes() * 60
     self._interval_timer = UIManager:scheduleIn(delay, function()
+        if timer_generation ~= self._timer_generation then
+            return
+        end
         self._interval_timer = nil
         self:showRestOverlay()
     end)
@@ -233,6 +244,7 @@ function TwentyTwentyTwenty:startTimer()
 end
 
 function TwentyTwentyTwenty:stopTimer()
+    self._timer_generation = (self._timer_generation or 0) + 1
     if self._interval_timer then
         UIManager:unschedule(self._interval_timer)
         self._interval_timer = nil
@@ -240,6 +252,9 @@ function TwentyTwentyTwenty:stopTimer()
 end
 
 function TwentyTwentyTwenty:showRestOverlay()
+    if not self:isEnabled() then
+        return
+    end
     if self._rest_overlay then
         return
     end
@@ -251,6 +266,15 @@ function TwentyTwentyTwenty:showRestOverlay()
         end,
     }
     UIManager:show(self._rest_overlay)
+end
+
+function TwentyTwentyTwenty:shutdown()
+    self:stopTimer()
+    if self._rest_overlay then
+        self._rest_overlay.on_done = nil
+        UIManager:close(self._rest_overlay)
+        self._rest_overlay = nil
+    end
 end
 
 function TwentyTwentyTwenty:openIntervalPicker(touchmenu_instance)
@@ -354,7 +378,10 @@ function TwentyTwentyTwenty:addToMainMenu(menu_items)
 end
 
 function TwentyTwentyTwenty:onClose()
-    self:stopTimer()
+    self:shutdown()
+    if active_instance == self then
+        active_instance = nil
+    end
 end
 
 return TwentyTwentyTwenty
