@@ -17,6 +17,16 @@ rest screen with a large countdown when the timer completes.
 - KOReader installed on your e-reader.
 - USB access to your e-reader's KOReader folder.
 
+## Compatibility
+
+Tested and working on:
+
+- Kobo Libra Colour
+- KOReader on Android
+
+It should work on other KOReader-supported devices too, but those have not been
+tested yet.
+
 ## Installation
 
 1. Download a ZIP of this repository.
